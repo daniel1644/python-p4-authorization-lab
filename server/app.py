@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3- 
 
 from flask import Flask, make_response, jsonify, request, session
 from flask_migrate import Migrate
@@ -83,16 +83,33 @@ class CheckSession(Resource):
             return user.to_dict(), 200
         
         return {}, 401
+    
+
 
 class MemberOnlyIndex(Resource):
-    
     def get(self):
-        pass
+        """Return a list of members-only articles"""
+        if not session.get('user_id'):
+            return {'error': 'Unauthorized'}, 401
+        
+        articles = Article.query.filter(Article.is_member_only == True).all()
+        articles_json = [article.to_dict() for article in articles]
+        return make_response(jsonify(articles_json), 200)
 
 class MemberOnlyArticle(Resource):
-    
     def get(self, id):
-        pass
+        """Return a members-only article by ID"""
+        if not session.get('user_id'):
+            return {'error': 'Unauthorized'}, 401
+        
+        article = Article.query.filter(Article.id == id, Article.is_member_only == True).first()
+        if not article:
+            return {'error': 'Article not found'}, 404
+        
+        article_json = article.to_dict()
+        return make_response(jsonify(article_json), 200)
+    
+    
 
 api.add_resource(ClearSession, '/clear', endpoint='clear')
 api.add_resource(IndexArticle, '/articles', endpoint='article_list')
